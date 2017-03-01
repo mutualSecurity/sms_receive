@@ -22,6 +22,16 @@ var port = new SerialPort("COM8",{
 port.on('open',onOpen);
 port.on('data',onDataReceived);
 
+function timeParse(time) {
+    _time = time.split(':');
+    if(_time[1].length===1 && _time[0].length===2){
+        return _time[0]+":0"+_time[1];
+
+    }
+    else {
+        return time;
+    }
+}
 function tConvert (time) {
   // Check correct time format and split into components
   time = time.toString ().match (/^([01]\d|2[0-3])(:)([0-5]\d)(:[0-5]\d)?$/) || [time];
@@ -36,8 +46,9 @@ function tConvert (time) {
 function dataInsert(record) {
     // Stream results back one row at a time
     record = record.split(' ');
-    timeCon = tConvert(record[3].toString().trim());
-    //console.log('Time Con',timeCon);
+    _time = timeParse(record[3].toString().trim());
+    timeCon = tConvert(_time);
+    console.log('Time Con',timeCon);
     var query_s = client.query("SELECT bank_code,branch_code,street FROM res_partner WHERE rf_id='"+record[1]+"'");
     query_s.on('row',function (row) {
         console.log(row);
