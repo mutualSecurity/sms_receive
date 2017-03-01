@@ -1,0 +1,220 @@
+
+
+
+
+
+/*
+
+var modem = require('modem').Modem();
+//console.log(modem)
+modem.open('COM8', function() {
+  // modem.getMessages(function() {
+  //   console.log(arguments);
+  // });
+
+    modem.smsReceived(function(cmti) {
+    console.log(cmti);
+  });
+
+  modem.on('smsReceived', function(sms) {
+    console.log(sms);
+  });
+     modem.on('dataReceived', function(sms) {
+    console.log(sms);
+  });
+
+    modem.on('sms received', function(sms) {
+    console.log(sms);
+  });
+    modem.on('ring', function(msisdn) {
+    console.log('Ringing', msisdn);
+  });
+});
+
+// var modem = require('modem').Modem();
+// console.log(modem);
+// modem.open('COM8', function(err,success) {
+//   if (err){
+//     console.log('Connection failed')
+//   }
+//   else {
+//       console.log('Connection Successful');
+//
+//       modem.getMessages(function() {
+//           console.log(arguments);
+//       });
+//       // modem.smsReceived('smsReceived',function(sms) {
+//       //     console.log(sms);
+//       // });
+//   }
+// });
+//
+// modem.on('smsReceived', function(sms) {
+//     console.log(sms);
+// });
+
+
+
+
+//03333494681
+//03460389641
+//03218981548
+// var modem = require('modem').Modem();
+// var express=require('express');
+// var bodyparser=require('body-parser');
+// var app = express()
+//
+// app.use(bodyparser.json());
+// app.use(bodyparser.urlencoded({extended:true}));
+//
+// modem.open('COM8', function(err,success) {
+//   if (err){
+//     console.log('Connection failed')
+//   }
+//   else {
+//     console.log('Connection Successful');
+//   }
+// });
+//
+// app.post('/',function(req,res){
+//     modem.sms({receiver:req.body.contact, text:req.body.sms,encoding:'16bit'}, function(err, sent_ids) {
+//       console.log('>>', arguments);
+//       if(err)
+//       console.log('Error sending sms:', err);
+//       else
+//       console.log('Message sent successfully, here are reference ids:', sent_ids.join(','));
+//       res.send({ some: 'Sent' });
+//     });
+// });
+//
+// var port=process.env.PORT||3000;
+// var server=app.listen(port,function () {
+//     var listenport=server.address().port;
+//     console.log("server is listening at port: "+listenport);
+// })
+
+
+*/
+
+
+var serialport = require('serialport');
+var SerialPort = serialport.SerialPort;
+var pg = require('pg');
+const connectionString = "postgres://odoo:odoo@localhost/bank-latest";
+const client = new pg.Client(connectionString);
+client.connect(function (err) {
+    if(err) {
+        throw err;
+    }
+    else {
+        console.log("Postgres connected successfully");
+    }
+});
+var split = require('split');
+var port = new SerialPort("COM8",{
+   baudrate: 921600
+});
+
+port.on('open',onOpen);
+port.on('data',onDataReceived);
+
+function dataInsert(record) {
+    // Stream results back one row at a time
+    record = record.split(' ');
+    del(port);
+    var query_s = client.query("SELECT bank_code,branch_code,street FROM res_partner WHERE rf_id='"+record[1]+"'");
+    query_s.on('row',function (row) {
+        if(row.bank_code == 'JSBL'){
+            query_ins = client.query("INSERT INTO visit_time(bank_name,bc,address,visit_date,visit_time)values('"+27+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+            console.log(record);
+
+        }
+        if(row.bank_code == 'MBL'){
+            query_ins = client.query("INSERT INTO visit_time(bank_name,bc,address,visit_date,visit_time)values('"+28+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+            console.log(record);
+
+        }
+        if(row.bank_code == 'UBL'){
+            query_ins = client.query("INSERT INTO visit_time(bank_name,bc,address,visit_date,visit_time)values('"+29+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+            console.log(record);
+
+        }
+        if(row.bank_code == 'FBL'){
+            query_ins = client.query("INSERT INTO visit_time(bank_name,bc,address,visit_date,visit_time)values('"+30+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+            console.log(record);
+
+        }
+        if(row.bank_code == 'NBP'){
+            query_ins = client.query("INSERT INTO visit_time(bank_name,bc,address,visit_date,visit_time)values('"+31+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+            console.log(record);
+
+        }
+        if(row.bank_code == 'HBL'){
+            query_ins = client.query("INSERT INTO visit_time(bank_name,bc,address,visit_date,visit_time)values('"+32+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+            console.log(record);
+        }
+
+
+        //query_ins = client.query("INSERT INTO guard_tracking(card_no,bc,bank_code,address,visit_date,visit_time)values('"+record[1]+"','"+row.branch_code+"','"+row.bank_code+"','"+row.street+"','"+record[2]+"','"+record[3]+"')");
+    });
+
+}
+
+function onOpen(err) {
+    if(!err){
+        console.log("Successfully Connected");
+    }
+}
+
+function onDataReceived(data) {
+    data = data.toString();
+    var arr = data.split(',');
+   // console.log(data);
+    try {
+    // the synchronous code that we want to catch thrown errors on
+        if (arr[4] !== undefined){
+            var narr = arr[4].split('\n');
+            if (narr[1] !== undefined){
+                dataInsert(narr[1]);
+                del(port);
+               // console.log("jo manga tha: "+ narr[1] );
+                //query = client.query("INSERT INTO guard_tracking(card_no)values('"+narr[1]+"')");
+            }
+        }
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+function read(serial) {
+    serial.write("AT+CMGF=1");
+    serial.write('\r');
+    serial.write("AT+CPMS=\"MT\"");
+    serial.write('\r');
+    serial.write("AT+CMGL=\"REC READ\"");
+    serial.write('\r');
+}
+
+function del(serial) {
+    serial.write("AT+CMGF=1");
+    serial.write('\r');
+    serial.write("AT+CMGD=1,0");
+    serial.write('\r');
+}
+
+setInterval(function(){ read(port) }, 3000);
+
+
+/*query_s.on('row',function (row) {
+
+    console.log(row)
+});*/
+//("insert into complaint_messages(message)values('"+self.sms.replace('\n',' ')+"','"+str(self.technician_name.name)+"','"+self.techContact+"','0','"+str(datetime.now().date())+"')")
+
+//REC UNREAD
+//AT+CMGF=1 // Set the GSM Module in text mode
+//AT+CNMI=2,2,0,0,0 // AT Command to receive live sms
+//SM sim
+//ME modem
+//MT both from sim n modem
+
