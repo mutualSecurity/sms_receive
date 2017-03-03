@@ -2,6 +2,7 @@ var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
 var pg = require('pg');
 var date= require('node-datetime');
+const yargs = require('yargs');
 var currdate = date.create();
 var format = currdate.format('Y-m-d');
 const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
@@ -15,7 +16,7 @@ client.connect(function (err) {
     }
 });
 var split = require('split');
-var port = new SerialPort("COM8",{
+var port = new SerialPort(yargs.argv.port,{
    baudrate: 921600
 });
 
@@ -24,9 +25,18 @@ port.on('data',onDataReceived);
 
 function timeParse(time) {
     _time = time.split(':');
+    //case 12:1
     if(_time[1].length===1 && _time[0].length===2){
         return _time[0]+":0"+_time[1];
 
+    }
+    //case 1:23
+    else if(_time[1].length===2 && _time[0].length===1){
+        return "0"+_time[0]+":"+_time[1];
+    }
+    //case 1:2
+    else if(_time[1].length===1 && _time[0].length===1){
+         return "0"+_time[0]+":0"+_time[1];
     }
     else {
         return time;
