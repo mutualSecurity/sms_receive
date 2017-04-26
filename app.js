@@ -1,10 +1,10 @@
 var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
 var pg = require('pg');
-var date= require('node-datetime');
+var split = require('split');
 const yargs = require('yargs');
-var currdate = date.create();
-var format = currdate.format('Y-m-d');
+
+/* Database connection string */
 const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
 const client = new pg.Client(connectionString);
 client.connect(function (err) {
@@ -15,7 +15,8 @@ client.connect(function (err) {
         console.log("Postgres connected successfully");
     }
 });
-var split = require('split');
+
+/* GSM Modem Connection String */
 var port = new SerialPort(yargs.argv.port,{
    baudrate: 921600
 });
@@ -23,25 +24,7 @@ var port = new SerialPort(yargs.argv.port,{
 port.on('open',onOpen);
 port.on('data',onDataReceived);
 
-function timeParse(time) {
-    _time = time.split(':');
-    //case 12:1
-    if(_time[1].length===1 && _time[0].length===2){
-        return _time[0]+":0"+_time[1];
-
-    }
-    //case 1:23
-    else if(_time[1].length===2 && _time[0].length===1){
-        return "0"+_time[0]+":"+_time[1];
-    }
-    //case 1:2
-    else if(_time[1].length===1 && _time[0].length===1){
-         return "0"+_time[0]+":0"+_time[1];
-    }
-    else {
-        return time;
-    }
-}
+/* Function for conversion of Time from 24hr to 12hr */
 function tConvert (time) {
   // Check correct time format and split into components
   time = time.toString ().match (/^([01]\d|2[0-3])(:)([0-5]\d)(:[0-5]\d)?$/) || [time];
@@ -53,27 +36,37 @@ function tConvert (time) {
   return time.join (''); // return adjusted time or original string
 }
 
+/* Function for insertion of data into database */
 function dataInsert(record) {
-    // Stream results back one row at a time
+    // This line breaks received sms into array
     record = record.split(' ');
-    _time = timeParse(record[3].toString().trim());
-    timeCon = tConvert(_time);
-    console.log('Time Con',timeCon);
+    //converts time from 24hr to 12hr
+    timeCon = tConvert(record[3].toString().trim());
+    //fetch record from db
     var query_s = client.query("SELECT bank_code,branch_code,street FROM res_partner WHERE rf_id='"+record[1]+"'");
+    // Stream results back one row at a time
     query_s.on('row',function (row) {
-        console.log(row);
-        query_ins = client.query("INSERT INTO mutual_guard_tracking(bank_code,branch_code,address,visit_date,visit_time,device_no)values('"+row.bank_code+"','"+row.branch_code+"','"+row.street+"','"+format+"','"+timeCon+"','"+record[0]+"')");
-        console.log(record);
+        //row is the record of table
+        query_ins = client.query("INSERT INTO mutual_guard_tracking(bank_code,branch_code,address,visit_date,visit_time,device_no)values('"+row.bank_code+"','"+row.branch_code+"','"+row.street+"','"+record[2]+"','"+timeCon+"','"+record[0]+"')");
+        console.log("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>SMS Received>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "
+            + "\n"+"Device ID:",record[0]
+            +"\n"+"Station ID:",record[1]
+            +"\n"+"Date:",record[2]
+            +"\n"+"Time:",record[3]+
+            "\nConverted Time: ",timeCon
+            +"\n\n"+"SMS has been logged into successfully");
         del(port);
     });
 }
 
+/* Function for checking that COM port is open or not */
 function onOpen(err) {
     if(!err){
         console.log("Successfully Connected");
     }
 }
 
+/* Function for receiving of sms from sim and modem both */
 function onDataReceived(data) {
     data = data.toString();
     var arr = data.split(',');
@@ -83,8 +76,6 @@ function onDataReceived(data) {
             var narr = arr[4].split('\n');
             if (narr[1] !== undefined){
                 dataInsert(narr[1]);
-               // console.log("jo manga tha: "+ narr[1] );
-                //query = client.query("INSERT INTO guard_tracking(card_no)values('"+narr[1]+"')");
             }
         }
     } catch (err) {
@@ -92,6 +83,7 @@ function onDataReceived(data) {
     }
 }
 
+/* Function for reading of sms from sim and modem both */
 function read(serial) {
     serial.write("AT+CMGF=1");
     serial.write('\r');
@@ -101,19 +93,13 @@ function read(serial) {
     serial.write('\r');
 }
 
+/* Function for deletion of sms after logged into database */
 function del(serial) {
     serial.write("AT+CMGF=1");
     serial.write('\r');
-    serial.write("AT+CMGD=1,0");
+    serial.write("AT+CMGD=1,1");
     serial.write('\r');
 }
 
 setInterval(function(){ read(port) }, 3000);
-
-//REC UNREAD
-//AT+CMGF=1 // Set the GSM Module in text mode
-//AT+CNMI=2,2,0,0,0 // AT Command to receive live sms
-//SM sim
-//ME modem
-//MT both from sim n modem
 
