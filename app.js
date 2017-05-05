@@ -80,7 +80,10 @@ function onDataReceived(data) {
     if (arr[0] == '\r' && arr.length >3)
     {
         //console.log(((arr[1].split(','))[0].split(':'))[1].trim());
-        dataInsert(arr[2],((arr[1].split(','))[0].split(':'))[1].trim())
+        if(arr[2],((arr[1].split(','))[0].split(':'))[1] != undefined ){
+            dataInsert(arr[2],((arr[1].split(','))[0].split(':'))[1].trim())
+        }
+
     }
     // try {
     // // the synchronous code that we want to catch thrown errors on
