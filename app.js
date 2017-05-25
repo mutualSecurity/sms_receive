@@ -80,7 +80,7 @@ function onDataReceived(data) {
     if (arr[0] == '\r' && arr.length >3)
     {
         //console.log(((arr[1].split(','))[0].split(':'))[1].trim());
-        if(arr[2],((arr[1].split(','))[0].split(':'))[1] != undefined ){
+        if(((arr[1].split(','))[0].split(':'))[1] != undefined ){
             dataInsert(arr[2],((arr[1].split(','))[0].split(':'))[1].trim())
         }
 
@@ -111,10 +111,19 @@ function read(serial) {
 
 /* Function for deletion of sms after logged into database */
 function del(serial,messageIndex) {
-    serial.write("AT+CMGF=1");
-    serial.write('\r');
-    serial.write("AT+CMGD="+messageIndex);
-    serial.write('\r');
+   if(messageIndex != undefined){
+        serial.write("AT+CMGF=1");
+        serial.write('\r');
+        serial.write("AT+CMGD="+messageIndex);
+        serial.write('\r');
+        console.log("SMS has been deleted");
+    }
+    else {
+        serial.write("AT+CMGF=1");
+        serial.write('\r');
+        serial.write("AT+CMGD=1,1");
+        serial.write('\r');
+    }
 }
 
 setInterval(function(){ read(port) }, 3000);
