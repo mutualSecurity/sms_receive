@@ -85,18 +85,9 @@ function onDataReceived(data) {
         }
 
     }
-    // try {
-    // // the synchronous code that we want to catch thrown errors on
-    //     if (arr[4] !== undefined){
-    //         var narr = arr[4].split('\n');
-    //         if (narr[1] !== undefined){
-    //             console.log(narr);
-    //             dataInsert(narr[1]);
-    //         }
-    //     }
-    // } catch (err) {
-    //     console.log(err)
-    // }
+    else {
+        del(port,undefined)
+    }
 }
 
 /* Function for reading of sms from sim and modem both */
