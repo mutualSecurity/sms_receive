@@ -73,8 +73,9 @@ function onOpen(err) {
 
 /* Function for receiving of sms from sim and modem both */
 function onDataReceived(data) {
+    console.log(data)
     data = data.toString();
-    //console.log(data);
+    console.log(data);
     var arr = data.split('\n');
     //console.log(arr);
     if (arr[0] == '\r' && arr.length >3)
