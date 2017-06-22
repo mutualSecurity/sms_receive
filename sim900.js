@@ -41,12 +41,12 @@ function dataInsert(record) {
     //converts time from 24hr to 12hr
     timeCon = tConvert(record[3].toString().trim());
     //fetch record from db
-    var query_s = client.query("SELECT bank_code,branch_code,street FROM res_partner WHERE rf_id='" + record[1] + "'");
+    var query_s = client.query("SELECT bank_code,branch_code,street,city FROM res_partner WHERE rf_id='" + record[1] + "'");
     // Stream results back one row at a time
     query_s.on('row', function (row) {
         if(row){
             //row is the record of table
-            query_ins = client.query("INSERT INTO mutual_guard_tracking(bank_code,branch_code,address,visit_date,visit_time,device_no)values('" + row.bank_code + "','" + row.branch_code + "','" + row.street + "','" + record[2] + "','" + timeCon + "','" + record[0] + "')");
+            query_ins = client.query("INSERT INTO mutual_guard_tracking(bank_code,branch_code,address,city,visit_date,visit_time,device_no)values('" + row.bank_code + "','" + row.branch_code + "','" + row.street +"','" + row.city + "','" + record[2] + "','" + timeCon + "','" + record[0] + "')");
             console.log("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>SMS Received>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "
                 + "\n" + "Device ID:", record[0]
                 + "\n" + "Station ID:", record[1]
