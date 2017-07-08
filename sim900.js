@@ -85,7 +85,7 @@ function readText(serial,index) {
     serial.write('\r');
     setTimeout(function(){
         del(serial,index)
-    }, 1000);
+    }, 300);
 }
 
 function del(serial,index) {
