@@ -76,6 +76,9 @@ port.on('data',function (data) {
     if((data[0].split(":"))[0].trim()=="+CMTI"){
         //console.log("Data Received at index number: "+data[1]);
         readText(port,data[1]);
+        setTimeout(function(){
+             del(port,data[1])
+        }, 500);
     }
 });
 
@@ -83,9 +86,6 @@ function readText(serial,index) {
     console.log("Reading... SMS at index "+index);
     serial.write("AT+CMGR="+index);
     serial.write('\r');
-    setTimeout(function(){
-        del(serial,index)
-    }, 300);
 }
 
 function del(serial,index) {
