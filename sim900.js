@@ -50,7 +50,7 @@ function dataInsert(row,guard_visit_time,device_record,second_visit) {
                 + "\n\n" + "SMS has been logged into db successfully");
     }
     else {
-        query_ins=client.query("UPDATE public.mutual_guard_tracking SET visit_time_two='" + second_visit + "'"+"WHERE card_no='"+ device_record[1] + "'"+" AND archive_signal is null");
+        query_ins=client.query("UPDATE public.mutual_guard_tracking SET visit_time_two='" + second_visit + "'"+",visit_date_two='"+device_record[2]+"'"+"WHERE card_no='"+ device_record[1] + "'"+" AND archive_signal is null AND visit_time_two is null");
 
     }
 
