@@ -9,6 +9,7 @@ const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
 const client = new pg.Client(connectionString);
 client.connect(function (err) {
     if(err) {
+        console.log(err)
         throw err;
     }
     else {
@@ -34,6 +35,7 @@ function onDataReceived(data) {
     data=data.toString().split(' ');
     if(data.length==4){
         //console.log("Received Data:"+data);
+        saveSmsLogs(data);
         checkVisit(data)
     }
 }
@@ -50,18 +52,26 @@ function dataInsert(row,guard_visit_time,device_record,second_visit) {
                 + "\n\n" + "SMS has been logged into db successfully");
     }
     else {
-        query_ins=client.query("UPDATE public.mutual_guard_tracking SET visit_time_two='" + second_visit + "'"+",visit_date_two='"+device_record[2]+"'"+"WHERE card_no='"+ device_record[1] + "'"+" AND archive_signal is null AND visit_time_two is null");
-
+        var signal_id = client.query("SELECT id FROM mutual_guard_tracking WHERE card_no='"+ device_record[1] + "'"+"AND archive_signal is null order by id desc limit 1");
+        signal_id.on('row', function(row) {
+            query_ins=client.query("UPDATE public.mutual_guard_tracking SET visit_time_two='" + second_visit + "'"+",visit_date_two='"+device_record[2]+"'"+"WHERE id='"+ row.id + "'");
+        });
+        console.log("Data has been updated");
     }
 
 }
 
+function saveSmsLogs(data) {
+    query_ins = client.query("INSERT INTO sms_logs" + "(device_id,card_id,date,time)" + "values('" + data[0] + "','" + data[1] + "','" + data[2] +"','" + data[3]+"')");
+    console.log("SMS has been logged")
+}
 /* Function for checking visits for patrolling */
 function checkVisit(record) {
+    signal_id = '';
     //converts time from 24hr to 12hr
     timeCon = tConvert(record[3].toString().trim());
     //fetch record from db
-    var check_signal = client.query("SELECT * FROM mutual_guard_tracking WHERE card_no='"+ record[1] + "'"+"AND archive_signal is null AND visit_time_two is null");
+    var check_signal = client.query("SELECT * FROM mutual_guard_tracking WHERE card_no='"+ record[1] + "'"+"AND archive_signal is null order by id desc limit 1");
     query_s = client.query("SELECT bank_code,branch_code,street,city,force_code FROM res_partner WHERE rf_id='" + record[1] + "'");
     check_signal.on('end', function(result) {
         if(result.rowCount == 0){
@@ -71,30 +81,49 @@ function checkVisit(record) {
         }
         else {
             var first_visit = result.rows[0].visit_time;
+            var second_visit = result.rows[0].visit_time_two;
             var guard_visit=timeCon;
-            diff=''
-            if(first_visit.indexOf('PM')>1 && guard_visit.indexOf('AM')>1 ){
-                var startTime = moment(first_visit, "HH:mm a");
-                var endTime = moment(guard_visit, "HH:mm a");
-                var diff = moment(endTime.add(1,'days')).diff(startTime,'minutes');
+            diff='';
+            if(first_visit && second_visit){
+                if(second_visit.indexOf('PM')>1 && guard_visit.indexOf('AM')>1){
+                    var startTime = moment(second_visit, "HH:mm a");
+                    var endTime = moment(guard_visit, "HH:mm a");
+                    var diff = moment(startTime.add(1,'days')).diff(endTime,'minutes');
+                     console.log("IF Time Diff>>>>>>>>>>>>>>>>>>>>>>",diff)
+                }
+                else {
+                    var startTime = moment(second_visit, "HH:mm a");
+                    var endTime = moment(guard_visit, "HH:mm a");
+                    var diff = Math.abs(moment(startTime).diff(endTime,'minutes'));
+                    console.log("ELSE Time Diff>>>>>>>>>>>>>>>>>>>>>>",diff)
+                }
+                if(diff>15){
+                    query_s.on('row', function (row) {
+                        console.log(">>>>>>>>>>>>>>>>>>>ROW ID>>>>>>>>>>>>>>>>>>",row);
+                        dataInsert(row,second_visit,record,0);
+                    });
+                }
 
             }
             else {
-                var startTime = moment(first_visit, "HH:mm a");
-                var endTime = moment(guard_visit, "HH:mm a");
-                var diff = moment(endTime).diff(startTime,'minutes');
+                if(first_visit.indexOf('PM')>1 && guard_visit.indexOf('AM')>1){
+                    var startTime = moment(first_visit, "HH:mm a");
+                    var endTime = moment(guard_visit, "HH:mm a");
+                    var diff = moment(endTime.add(1,'days')).diff(startTime,'minutes');
+                }
+                else {
+                    var startTime = moment(first_visit, "HH:mm a");
+                    var endTime = moment(guard_visit, "HH:mm a");
+                    var diff = Math.abs(moment(endTime).diff(startTime,'minutes'));
+                }
+                if(diff>15){
+                    query_s.on('row', function (row) {
+                        dataInsert(row,first_visit,record,guard_visit);
+                    });
+                }
             }
-            if(diff>15){
-                query_s.on('row', function (row) {
-                dataInsert(row,first_visit,record,guard_visit)
-            });
-            }
-
         }
     });
-
-
-
 }
 
 /* Function for conversion of Time from 24hr to 12hr */
