@@ -65,7 +65,8 @@ function dataInsert(row,guard_visit_time,device_record,second_visit) {
 }
 
 function saveSmsLogs(data) {
-    query_ins = client.query("INSERT INTO sms_logs" + "(device_id,card_id,date,time)" + "values('" + data[0] + "','" + data[1] + "','" + data[2] +"','" + data[3]+"')");
+    var now1= moment().format().toString();
+    query_ins = client.query("INSERT INTO sms_logs" + "(device_id,card_id,date,time,sys_date)" + "values('" + data[0] + "','" + data[1] + "','" + data[2] +"','" + data[3] +"','" +now1+"')");
     console.log("SMS has been logged")
 }
 /* Function for checking visits for patrolling */
@@ -92,7 +93,7 @@ function checkVisit(record) {
                     var startTime = moment(second_visit, "HH:mm a");
                     var endTime = moment(guard_visit, "HH:mm a");
                     var diff = moment(startTime.add(1,'days')).diff(endTime,'minutes');
-                     console.log("IF Time Diff>>>>>>>>>>>>>>>>>>>>>>",diff)
+
                 }
                 else {
                     var startTime = moment(second_visit, "HH:mm a");
