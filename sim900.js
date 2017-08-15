@@ -3,6 +3,8 @@
  */
 var moment = require('moment');
 var pg = require('pg');
+var _pattern1=/\d+\s\d+\s2\d\d\d-0[1-9]-[0-3][1-9]\s\d\d:\d\d/;
+var _pattern2=/\d+\s\d+\s2\d\d\d-1[1-2]-[0-3][1-9]\s\d\d:\d\d/;
 timeCon='';
 /* Database connection string */
 const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
@@ -32,11 +34,12 @@ var port = new SerialPort(yargs.argv.port,{
 
 port.on('data',onDataReceived);
 function onDataReceived(data) {
-    data=data.toString().split(' ');
-    if(data.length==4){
-        //console.log("Received Data:"+data);
-        saveSmsLogs(data);
-        checkVisit(data)
+    if(data.match(_pattern1) || data.match(_pattern2)){
+        data=data.toString().split(' ');
+        if(data.length==4){
+            saveSmsLogs(data);
+            checkVisit(data);
+        }
     }
 }
 
@@ -95,7 +98,6 @@ function checkVisit(record) {
                     var startTime = moment(second_visit, "HH:mm a");
                     var endTime = moment(guard_visit, "HH:mm a");
                     var diff = Math.abs(moment(startTime).diff(endTime,'minutes'));
-                    console.log("ELSE Time Diff>>>>>>>>>>>>>>>>>>>>>>",diff)
                 }
                 if(diff>15){
                     query_s.on('row', function (row) {
