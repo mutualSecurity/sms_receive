@@ -4,7 +4,8 @@
 var moment = require('moment');
 var pg = require('pg');
 var _pattern1=/\d+\s\d+\s2\d\d\d-0[1-9]-[0-3][1-9]\s\d\d:\d\d/;
-var _pattern2=/\d+\s\d+\s2\d\d\d-1[1-2]-[0-3][1-9]\s\d\d:\d\d/;
+var _pattern2=/\d+\s\d+\s2\d\d\d-1[0-2]-[0-3][1-9]\s\d\d:\d\d/;
+var _pattern3=/\d+\s\d+\s2\d\d\d-[1-9]-[0-3][1-9]\s\d\d:\d\d/;
 timeCon='';
 /* Database connection string */
 const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
@@ -34,7 +35,7 @@ var port = new SerialPort(yargs.argv.port,{
 
 port.on('data',onDataReceived);
 function onDataReceived(data) {
-    if(data.match(_pattern1) || data.match(_pattern2)){
+    if(data.match(_pattern1) || data.match(_pattern2)|| data.match(_pattern3)){
         data=data.toString().split(' ');
         if(data.length==4){
             saveSmsLogs(data);
