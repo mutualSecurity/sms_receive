@@ -7,7 +7,7 @@ var _pattern1=/\d+\s\d+\s2\d\d\d-0[1-9]-[0-3][1-9]\s\d\d:\d\d/; //2007-02-05
 var _pattern2=/\d+\s\d+\s2\d\d\d-1[0-2]-[0-3][1-9]\s\d\d:\d\d/; //2008-10-05
 var _pattern3=/\d+\s\d+\s2\d\d\d-[1-9]-[0-3][1-9]\s\d\d:\d\d/; //2009-8-05
 var _pattern4=/\d+\s\d+\s2\d\d\d-[1-9]-[1-9]\s\d\d:\d\d/; //2009-8-8
-var _pattern5=/\d+\s\d+\s2\d\d\d-0[1-9]-[0-3][1-9]\s\d\d:\d\d/; //2009-08-8
+var _pattern5=/\d+\s\d+\s2\d\d\d-0[1-9]-[1-9]\s\d\d:\d\d/; //2009-08-8
 
 timeCon='';
 /* Database connection string */
