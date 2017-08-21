@@ -2,12 +2,9 @@
  * Created by pk on 5/24/2017.
  */
 var moment = require('moment');
+var date_validator = require('DateValidator').DateValidator;
 var pg = require('pg');
-var _pattern1=/\d+\s\d+\s2\d\d\d-0[1-9]-[0-3][1-9]\s\d\d:\d\d/; //2007-02-05
-var _pattern2=/\d+\s\d+\s2\d\d\d-1[0-2]-[0-3][1-9]\s\d\d:\d\d/; //2008-10-05
-var _pattern3=/\d+\s\d+\s2\d\d\d-[1-9]-[0-3][1-9]\s\d\d:\d\d/; //2009-8-05
-var _pattern4=/\d+\s\d+\s2\d\d\d-[1-9]-[1-9]\s\d\d:\d\d/; //2009-8-8
-var _pattern5=/\d+\s\d+\s2\d\d\d-0[1-9]-[1-9]\s\d\d:\d\d/; //2009-08-8
+var generic_pattern=/\d+\s\d+\s2\d\d\d-\d+-\d+\s\d\d:\d\d/;
 
 timeCon='';
 /* Database connection string */
@@ -38,11 +35,19 @@ var port = new SerialPort(yargs.argv.port,{
 
 port.on('data',onDataReceived);
 function onDataReceived(data) {
-    if(data.match(_pattern1) || data.match(_pattern2)|| data.match(_pattern3) || data.match(_pattern4) || data.match(_pattern5)){
+    //data.match(_pattern1) || data.match(_pattern2)|| data.match(_pattern3) || data.match(_pattern4) || data.match(_pattern5)
+    if(data.match(generic_pattern)){
         data=data.toString().split(' ');
         if(data.length==4){
-            saveSmsLogs(data);
-            checkVisit(data);
+            if(dateValidation(data)){
+                  saveSmsLogs(data);
+                  checkVisit(data);
+            }
+            else {
+                saveSmsLogs(data);
+            }
+
+
         }
     }
 }
@@ -66,6 +71,13 @@ function dataInsert(row,guard_visit_time,device_record,second_visit) {
         console.log("Data has been updated");
     }
 
+}
+
+function dateValidation(dt) {
+    dtarr=dt[2].toString().split('-');
+    console.log(dtarr);
+    console.log("is the date valid:"+date_validator.validate(dtarr[0],dtarr[1],dtarr[2]));
+    return date_validator.validate(dtarr[0],dtarr[1],dtarr[2]);
 }
 
 function saveSmsLogs(data) {
