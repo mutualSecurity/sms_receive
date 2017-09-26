@@ -8,7 +8,7 @@ var generic_pattern=/\d+\s\d+\s2\d\d\d-\d+-\d+\s\d\d:\d\d/;
 
 timeCon='';
 /* Database connection string */
-const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
+const connectionString = "postgres://odoo:odoo@192.168.2.9:5432/mutual-erp-bank";
 const client = new pg.Client(connectionString);
 client.connect(function (err) {
     if(err) {
