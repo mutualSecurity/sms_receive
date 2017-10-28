@@ -5,7 +5,7 @@ var moment = require('moment');
 var date_validator = require('DateValidator').DateValidator;
 var pg = require('pg');
 var generic_pattern=/\d+\s\d+\s2\d\d\d-\d+-\d+\s\d\d:\d\d/;
-
+sms_index = 0;
 timeCon='';
 /* Database connection string */
 const connectionString = "postgres://odoo:odoo@192.168.2.9:5432/mutual-erp-bank";
@@ -34,25 +34,37 @@ var port = new SerialPort(yargs.argv.port,{
 });
 
 port.on('data',onDataReceived);
+function fetch_sms_index(data) {
+    rec=data.toString().split(',');
+    if((rec[0].split(":"))[0].trim()=="+CMTI"){
+        console.log("Data Received at index number: "+rec[1]);
+        sms_index = rec[1];
+        return sms_index
+    }
+}
 function onDataReceived(data) {
-    //data.match(_pattern1) || data.match(_pattern2)|| data.match(_pattern3) || data.match(_pattern4) || data.match(_pattern5)
+    fetch_sms_index(data);
     if(data.match(generic_pattern)){
         data=data.toString().split(' ');
         if(data.length==4){
             if(dateValidation(data)){
-                  saveSmsLogs(data);
-                  checkVisit(data);
+                saveSmsLogs(data,sms_index);
+                checkVisit(data,sms_index);
             }
             else {
-                saveSmsLogs(data);
+                saveSmsLogs(data,sms_index);
             }
 
-
+        }
+        else {
+            del(port,sms_index)
         }
     }
+
+
 }
 
-function dataInsert(row,guard_visit_time,device_record,second_visit) {
+function dataInsert(row,guard_visit_time,device_record,second_visit,index) {
     if (second_visit==0){
          query_ins = client.query("INSERT INTO mutual_guard_tracking" + "(bank_code,branch_code,address,city,visit_date,visit_time,force_code,device_no,card_no)" + "values('" + row.bank_code + "','" + row.branch_code + "','" + row.street +"','" + row.city + "','" + device_record[2] + "','" + timeCon + "','" + row.force_code +"','" + device_record[0] + "','" + device_record[1] + "')");
          console.log("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>SMS Received>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> "
@@ -62,6 +74,7 @@ function dataInsert(row,guard_visit_time,device_record,second_visit) {
                 + "\n" + "Time:", device_record[3] +
                 "\nConverted Time: ", guard_visit_time
                 + "\n\n" + "SMS has been logged into db successfully");
+         del(port,index);
     }
     else {
         var signal_id = client.query("SELECT id FROM mutual_guard_tracking WHERE card_no='"+ device_record[1] + "'"+"AND archive_signal is null order by id desc limit 1");
@@ -69,6 +82,7 @@ function dataInsert(row,guard_visit_time,device_record,second_visit) {
             query_ins=client.query("UPDATE public.mutual_guard_tracking SET visit_time_two='" + second_visit + "'"+",visit_date_two='"+device_record[2]+"'"+"WHERE id='"+ row.id + "'");
         });
         console.log("Data has been updated");
+        del(port,index)
     }
 
 }
@@ -80,13 +94,15 @@ function dateValidation(dt) {
     return date_validator.validate(dtarr[0],dtarr[1],dtarr[2]);
 }
 
-function saveSmsLogs(data) {
+function saveSmsLogs(data,index) {
     var now1= moment().format().toString();
     query_ins = client.query("INSERT INTO sms_logs" + "(device_id,card_id,date,time,sys_date)" + "values('" + data[0] + "','" + data[1] + "','" + data[2] +"','" + data[3] +"','" +now1+"')");
-    console.log("SMS has been logged")
+    if(index){
+        del(port,index);
+    }
 }
 /* Function for checking visits for patrolling */
-function checkVisit(record) {
+function checkVisit(record,index) {
     signal_id = '';
     //converts time from 24hr to 12hr
     timeCon = tConvert(record[3].toString().trim());
@@ -96,7 +112,7 @@ function checkVisit(record) {
     check_signal.on('end', function(result) {
         if(result.rowCount == 0){
             query_s.on('row', function (row) {
-                dataInsert(row,timeCon,record,0)
+                dataInsert(row,timeCon,record,0,index)
             });
         }
         else {
@@ -118,8 +134,7 @@ function checkVisit(record) {
                 }
                 if(diff>15){
                     query_s.on('row', function (row) {
-                        console.log(">>>>>>>>>>>>>>>>>>>ROW ID>>>>>>>>>>>>>>>>>>",row);
-                        dataInsert(row,second_visit,record,0);
+                        dataInsert(row,second_visit,record,0,index);
                     });
                 }
 
@@ -137,7 +152,7 @@ function checkVisit(record) {
                 }
                 if(diff>15){
                     query_s.on('row', function (row) {
-                        dataInsert(row,first_visit,record,guard_visit);
+                        dataInsert(row,first_visit,record,guard_visit,index);
                     });
                 }
             }
@@ -163,9 +178,7 @@ port.on('data',function (data) {
     if((data[0].split(":"))[0].trim()=="+CMTI"){
         //console.log("Data Received at index number: "+data[1]);
         readText(port,data[1]);
-        setTimeout(function(){
-             del(port,data[1])
-        }, 500);
+        del(port,data[1])
     }
 });
 
@@ -176,7 +189,10 @@ function readText(serial,index) {
 }
 
 function del(serial,index) {
-    console.log("Deleting SMS at index....."+index);
-    serial.write("AT+CMGD="+index);
-    serial.write('\r');
+    setTimeout(function () {
+         console.log("Deleting SMS at index....."+index);
+         serial.write("AT+CMGD="+index);
+         serial.write('\r');
+    },500);
+
 }
