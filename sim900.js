@@ -8,15 +8,16 @@ var generic_pattern=/\d+\s\d+\s2\d\d\d-\d+-\d+\s\d\d:\d\d/;
 
 timeCon='';
 /* Database connection string */
-const connectionString = "postgres://odoo:odoo@192.168.2.9:5432/mutual-erp-bank";
+const connectionString = "postgres://odoo:odoo@localhost/bank_05-10-2017";
 const client = new pg.Client(connectionString);
 client.connect(function (err) {
     if(err) {
-        console.log(err)
+        console.log(err);
         throw err;
     }
     else {
         console.log("Postgres connected successfully");
+        reset_modem(port)
     }
 });
 
@@ -34,6 +35,14 @@ var port = new SerialPort(yargs.argv.port,{
 });
 
 port.on('data',onDataReceived);
+function fetch_sms_index(data) {
+    rec=data.toString().split(',');
+    if((rec[0].split(":"))[0].trim()=="+CMTI"){
+        console.log("Data Received at index number: "+rec[1]);
+        sms_index = rec[1];
+        return sms_index
+    }
+}
 function onDataReceived(data) {
     //data.match(_pattern1) || data.match(_pattern2)|| data.match(_pattern3) || data.match(_pattern4) || data.match(_pattern5)
     if(data.match(generic_pattern)){
@@ -176,7 +185,21 @@ function readText(serial,index) {
 }
 
 function del(serial,index) {
-    console.log("Deleting SMS at index....."+index);
-    serial.write("AT+CMGD="+index);
-    serial.write('\r');
+    if(index<45){
+        setTimeout(function () {
+            serial.write("AT+CMGD="+index);
+            serial.write('\r');
+            },500);
+    }
+    else {
+        reset_modem(serial);
+    }
+
+}
+
+function reset_modem(serial) {
+    setTimeout(function () {
+        serial.write("AT+CMGD=1,4");
+        serial.write('\r');
+    },500);
 }
