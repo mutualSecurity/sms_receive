@@ -5,6 +5,14 @@ var moment = require('moment');
 var date_validator = require('DateValidator').DateValidator;
 var pg = require('pg');
 var generic_pattern=/\d+\s\d+\s2\d\d\d-\d+-\d+\s\d\d:\d\d/;
+var nodemailer = require('nodemailer');
+const yargs = require('yargs');
+const sender = yargs.argv.sender_email;
+const username = yargs.argv.sender_username;
+const receiver = yargs.argv.receiver_email;
+
+// create reusable transporter object using the default SMTP transport
+var transporter = nodemailer.createTransport('smtps://'+sender+':'+username+'@smtp.gmail.com');
 
 timeCon='';
 /* Database connection string */
@@ -23,7 +31,7 @@ client.connect(function (err) {
 
 var serialport = require('serialport');
 var SerialPort = serialport.SerialPort;
-const yargs = require('yargs');
+
 
 var port = new SerialPort(yargs.argv.port,{
     baudrate: 115200,
@@ -185,11 +193,10 @@ function readText(serial,index) {
 }
 
 function del(serial,index) {
-    if(index<45){
-        setTimeout(function () {
-            serial.write("AT+CMGD="+index);
-            serial.write('\r');
-            },500);
+    if(parseInt(index)<45){
+        console.log("Deleting messaage at index:"+index);
+        serial.write("AT+CMGD="+index);
+        serial.write('\r');
     }
     else {
         reset_modem(serial);
@@ -199,7 +206,20 @@ function del(serial,index) {
 
 function reset_modem(serial) {
     setTimeout(function () {
+        console.log("Memory of modem has been cleared");
         serial.write("AT+CMGD=1,4");
         serial.write('\r');
+        var mailOptions = {
+            from: "Guard Patrolling Alerts "+sender, // sender address
+            to: receiver, // list of receivers
+            subject: "Alert Modem Memory Limit Reached", // Subject line
+            text:"GSM MODEM has been restarted"
+        };
+        transporter.sendMail(mailOptions, function(error, info){
+            if(error){
+                return console.log(error);
+            }
+            console.log('Message sent: ' + info.response);
+        });
     },500);
 }
