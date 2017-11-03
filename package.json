@@ -16,6 +16,7 @@
     "modem": "^1.0.3",
     "moment": "^2.18.1",
     "node-datetime": "^1.0.0",
+    "nodemailer": "^4.3.1",
     "pg": "^6.1.2",
     "serialport": "^4.0.7",
     "split": "^1.0.0",
