@@ -15,6 +15,7 @@ const receiver = yargs.argv.receiver_email;
 var transporter = nodemailer.createTransport('smtps://'+sender+':'+username+'@smtp.gmail.com');
 
 timeCon='';
+//ary = []
 /* Database connection string */
 const connectionString = "postgres://odoo:odoo@192.168.2.9:5432/mutual-erp-bank";
 const client = new pg.Client(connectionString);
@@ -51,6 +52,7 @@ function fetch_sms_index(data) {
         return sms_index
     }
 }
+
 function onDataReceived(data) {
     //data.match(_pattern1) || data.match(_pattern2)|| data.match(_pattern3) || data.match(_pattern4) || data.match(_pattern5)
     if(data.match(generic_pattern)){
@@ -63,10 +65,45 @@ function onDataReceived(data) {
             else {
                 saveSmsLogs(data);
             }
-
-
         }
     }
+    // else if(typeof(data)=='string'){
+    //     attendance = {}
+    //     res = ''
+    //     res += data
+    //     if(res.length==2 || res.length >50){
+    //             ary.push(res)
+    //             if(ary.length == 2){
+    //                 if(ary[1].trim().toLowerCase()=='p'){
+    //                     attendance = {
+    //                         'text': ary[1],
+    //                         'contact':ary[0].split(',')[1],
+    //                         'date': ary[0].split(',')[3],
+    //                         'time': ary[0].split(',')[4],
+    //                     }
+    //                     mark_attendance(attendance)
+    //                 }
+    //                 else {
+    //                     ary = []
+    //                 }
+    //             }
+    //     }
+    //     else {
+    //         res = ''
+    //         ary = []
+    //     }
+    // }
+}
+
+function mark_attendance(attendance) {
+    ary = []
+    day = attendance['date'].replace('"','').trim().split('/')
+    day = "20"+day[0]+"-"+day[1]+"-"+day[2]
+    time = attendance['time'].replace(/"/g,'').trim().split('+')[0]
+    contact = "0"+attendance['contact'].replace(/"/g,'').trim().split('+92')[1]
+    query_ins = client.query("INSERT INTO attendance_logs" + "(text,contact,date_,time_)" + "values('" + attendance['text'] + "','" + contact + "','" + day +"','" + time + "')");
+    console.log("Attendance logged:\n",attendance)
+    return true
 }
 
 function dataInsert(row,guard_visit_time,device_record,second_visit) {
@@ -176,7 +213,6 @@ function tConvert (time) {
 
 port.on('data',function (data) {
     data = data.toString().split(',');
-    //console.log(data);
     if((data[0].split(":"))[0].trim()=="+CMTI"){
         //console.log("Data Received at index number: "+data[1]);
         readText(port,data[1]);
@@ -186,6 +222,7 @@ port.on('data',function (data) {
     }
 });
 
+
 function readText(serial,index) {
     console.log("Reading... SMS at index "+index);
     serial.write("AT+CMGR="+index);
@@ -193,9 +230,9 @@ function readText(serial,index) {
 }
 
 function del(serial,index) {
-    if(parseInt(index)<45){
+    if(parseInt(index)==1){
         console.log("Deleting messaage at index:"+index);
-        serial.write("AT+CMGD="+index);
+        serial.write("AT+CMGD=0,"+index);
         serial.write('\r');
     }
     else {
@@ -209,6 +246,12 @@ function reset_modem(serial) {
         console.log("Memory of modem has been cleared");
         serial.write("AT+CMGD=1,4");
         serial.write('\r');
+        serial.write("AT+CMGD=1,2");
+        serial.write('\r');
+        serial.write("AT+CMGD=1,3");
+        serial.write('\r');
+        serial.write("AT+CMGD=1,1");
+        serial.write('\r');
         var mailOptions = {
              from: "Guard Patrolling Alerts "+sender, // sender address
              to: receiver, // list of receivers
@@ -221,5 +264,5 @@ function reset_modem(serial) {
              }
              console.log('Message sent: ' + info.response);
          });
-    },1000);
+    },10000);
 }
