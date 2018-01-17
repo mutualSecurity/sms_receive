@@ -16,7 +16,7 @@ const yargs = require('yargs');
 
 timeCon='';
 /* Database connection string */
-const connectionString = "postgres://odoo:odoo@192.168.2.9:5432/mutual-erp-bank";
+const connectionString = "postgres://odoo:odoo@localhost/mutual-erp-bank";
 const client = new pg.Client(connectionString);
 client.connect(function (err) {
     if(err) {
@@ -34,11 +34,7 @@ var SerialPort = serialport.SerialPort;
 
 
 var port = new SerialPort(yargs.argv.port,{
-    baudrate: 115200,
-    dataBits: 8,
-    parity: 'none',
-    stopBits: 1,
-    flowControl:false,
+    baudrate: 9600,
     parser: SerialPort.parsers.readline('\n')
 });
 
@@ -63,7 +59,6 @@ function onDataReceived(data) {
             else {
                 saveSmsLogs(data);
             }
-
 
         }
     }
@@ -193,7 +188,7 @@ function readText(serial,index) {
 }
 
 function del(serial,index) {
-    if(parseInt(index)<45){
+    if(parseInt(index)==1){
         console.log("Deleting messaage at index:"+index);
         serial.write("AT+CMGD="+index);
         serial.write('\r');
@@ -201,25 +196,12 @@ function del(serial,index) {
     else {
         reset_modem(serial);
     }
-
 }
 
 function reset_modem(serial) {
     setTimeout(function () {
-        console.log("Memory of modem has been cleared");
         serial.write("AT+CMGD=1,4");
         serial.write('\r');
-        // var mailOptions = {
-        //     from: "Guard Patrolling Alerts "+sender, // sender address
-        //     to: receiver, // list of receivers
-        //     subject: "Alert Modem Memory Limit Reached", // Subject line
-        //     text:"GSM MODEM has been restarted"
-        // };
-        // transporter.sendMail(mailOptions, function(error, info){
-        //     if(error){
-        //         return console.log(error);
-        //     }
-        //     console.log('Message sent: ' + info.response);
-        // });
-    },500);
+        console.log("Memory of modem has been cleared");
+    },1000);
 }
